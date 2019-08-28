@@ -3,6 +3,7 @@ defmodule LiveChatWeb.ChatLive do
 
   import Ecto.Changeset
 
+  alias LiveChat.Presence
   alias LiveChatWeb.ChatView
   alias LiveChat.PubSub
   alias LiveChat.ChatServer, as: Chat
@@ -10,12 +11,25 @@ defmodule LiveChatWeb.ChatLive do
   def mount(%{user: user}, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(PubSub, "lobby")
+      {:ok, _} =
+        Presence.track(
+          self(),
+          "lobby:presence",
+          user.name,
+          %{
+            name: user.name,
+            email: user.email,
+            joined_at: :os.system_time(:seconds)
+          }
+        )
     end
 
     assigns = [
       user: user,
       messages: Chat.get_messages(),
-      changeset: message_changeset()
+      changeset: message_changeset(),
+      counter: 0,
+      sidebar_open?: false
     ]
     {:ok, assign(socket, assigns)}
   end
@@ -41,6 +55,10 @@ defmodule LiveChatWeb.ChatLive do
       %{valid?: false} = changeset ->
         {:noreply, assign(socket, :changeset, changeset)}
     end
+  end
+
+  def handle_event("show_online", _params, socket) do
+    {:noreply, assign(socket, :sidebar_open?, !socket.assigns.sidebar_open?)}
   end
 
   @types %{message: :string}
