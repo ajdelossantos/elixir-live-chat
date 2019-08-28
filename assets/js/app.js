@@ -18,5 +18,16 @@ import 'phoenix_html';
 
 import LiveSocket from 'phoenix_live_view';
 
-let liveSocket = new LiveSocket('/live');
+let Hooks = {};
+
+Hooks.NewMessage = {
+  mounted() {
+    let messages = document.querySelector('.main');
+    let currentScrollHeight = messages.scrollTop + messages.offsetHeight + this.el.offsetHeight;
+
+    if (currentScrollHeight >= messages.scrollHeight) messages.scrollTop = messages.scrollHeight;
+  }
+};
+
+let liveSocket = new LiveSocket('/live', {hooks: Hooks});
 liveSocket.connect();
